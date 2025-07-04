@@ -3,7 +3,15 @@
 from dotenv import load_dotenv
 from google.cloud import firestore
 from langchain_google_firestore import FirestoreChatMessageHistory
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+import time
+from pprint import pprint
+# Load environment variables from .env
+load_dotenv()
+
+# Create a ChatGoogleGenerativeAI model
+model = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
 
 """
 Steps to replicate this example:
@@ -23,28 +31,27 @@ Steps to replicate this example:
 load_dotenv()
 
 # Setup Firebase Firestore
-PROJECT_ID = "langchain-demo-abf48"
-SESSION_ID = "user_session_new"  # This could be a username or a unique ID
+PROJECT_ID = "chatbot-b8a98"
+SESSION_ID = "safal-102"  # This could be a username or a unique ID
 COLLECTION_NAME = "chat_history"
 
 # Initialize Firestore Client
-print("Initializing Firestore Client...")
+pprint("Initializing Firestore Client...")
 client = firestore.Client(project=PROJECT_ID)
 
 # Initialize Firestore Chat Message History
-print("Initializing Firestore Chat Message History...")
+pprint("Initializing Firestore Chat Message History...")
 chat_history = FirestoreChatMessageHistory(
     session_id=SESSION_ID,
     collection=COLLECTION_NAME,
     client=client,
+    encode_message=False
 )
-print("Chat History Initialized.")
-print("Current Chat History:", chat_history.messages)
+pprint("Chat History Initialized.")
+pprint("Current Chat History:")
+pprint(chat_history.messages)
 
-# Initialize Chat Model
-model = ChatOpenAI()
-
-print("Start chatting with the AI. Type 'exit' to quit.")
+pprint("Start chatting with the AI. Type 'exit' to quit.")
 
 while True:
     human_input = input("User: ")
@@ -53,7 +60,14 @@ while True:
 
     chat_history.add_user_message(human_input)
 
-    ai_response = model.invoke(chat_history.messages)
-    chat_history.add_ai_message(ai_response.content)
-
-    print(f"AI: {ai_response.content}")
+    # ai_response = model.invoke(chat_history.messages)
+    # chat_history.add_ai_message(ai_response.content)
+    full_response = ""
+    for chunk in model.stream(chat_history.messages):
+        content = chunk.content if hasattr(chunk, "content") else str(chunk)
+        print(content, end ="", flush=True)
+        time.sleep(0.1)
+        full_response += content
+    print()
+    
+    chat_history.add_ai_message(full_response)

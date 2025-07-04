@@ -42,7 +42,7 @@ escalate_feedback_template = ChatPromptTemplate.from_messages(
         ("system", "You are a helpful assistant."),
         (
             "human",
-            "Generate a message to escalate this feedback to a human agent: {feedback}.",
+            "This feedback needs to be escalated to a human agent. Generate a message for the human agent to see {feedback}.",
         ),
     ]
 )
@@ -79,13 +79,18 @@ classification_chain = classification_template | model | StrOutputParser()
 # Combine classification and response generation into one chain
 chain = classification_chain | branches
 
-# Run the chain with an example review
-# Good review - "The product is excellent. I really enjoyed using it and found it very helpful."
-# Bad review - "The product is terrible. It broke after just one use and the quality is very poor."
-# Neutral review - "The product is okay. It works as expected but nothing exceptional."
-# Default - "I'm not sure about the product yet. Can you tell me more about its features and benefits?"
+# Create feedback dictionary
+feedback_dict = {
+    "1": "The product is excellent. I really enjoyed using it and found it very helpful.",
+    "2": "The product is terrible. It broke after just one use and the quality is very poor.",
+    "3": "The product is okay. It works as expected but nothing exceptional.",
+    "4": "I'm not sure about the product yet. Can you tell me more about its features and benefits?"
+}
 
-review = "The product is terrible. It broke after just one use and the quality is very poor."
+
+choice = input(feedback_dict)
+review = feedback_dict.get(choice, feedback_dict["4"])  # Default to option 4 if invalid choice
+
 result = chain.invoke({"feedback": review})
 
 # Output the result
